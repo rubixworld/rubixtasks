@@ -761,9 +761,13 @@
   }
 
   /* ====== ROOM ====== */
-  function getRoomId(){ var m=location.hash.match(/room=([a-z0-9\-]+)/i);
-    if(m) return m[1]; var id='r'+Math.random().toString(36).slice(2,10);
-    location.hash='room='+id; return id; }
+  function getRoomId(){
+    var DEFAULT_ROOM = 'raw9b1l0';
+    var m = location.hash.match(/room=([a-z0-9\-]+)/i);
+    if(m) return m[1];
+    location.hash = 'room=' + DEFAULT_ROOM;
+    return DEFAULT_ROOM;
+  }
   var ROOM_ID = getRoomId();
   window.addEventListener('hashchange', function(){
     var m = location.hash.match(/room=([a-z0-9\-]+)/i);
