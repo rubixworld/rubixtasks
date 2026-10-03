@@ -66,9 +66,9 @@ html.light .hdr-icon{color:var(--muted)}
 .list-cards{overflow-y:auto;flex:2 1 auto;min-height:40px;padding:4px 8px;display:flex;flex-direction:column;gap:8px}
 .list-resize{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;z-index:6;opacity:.3;background:linear-gradient(135deg,transparent 45%,var(--muted) 47%,var(--muted) 53%,transparent 55%);border-bottom-right-radius:var(--r-lg)}
 .list-resize:hover{opacity:.9}
-.snap-line{position:fixed;z-index:9999;pointer-events:none;background:#7c5cff;box-shadow:0 0 4px rgba(124,92,255,.8);display:none}
-.snap-line.v{width:1px;top:0;bottom:0}
-.snap-line.h{height:1px;left:0;right:0}
+.snap-line{position:fixed;z-index:9999;pointer-events:none;background:#7c5cff;box-shadow:0 0 6px rgba(124,92,255,1);display:none}
+.snap-line.v{width:1px}
+.snap-line.h{height:1px}
 .list.drag-over .list-cards{background:var(--accent-soft);border-radius:var(--r)}
 .list-empty{font-size:12px;color:var(--muted-2);text-align:center;padding:14px 8px;border:1.5px dashed var(--border);border-radius:var(--r)}
 .list-add{margin:2px 8px 10px;padding:8px;border-radius:var(--r);color:var(--muted);justify-content:center;font-size:13px;font-weight:600;border:1.5px dashed var(--border)}
@@ -818,6 +818,22 @@ function moveCard(cardId,listId,beforeCardId){
   saveState(); render();
 }
 function makeDraggable(el,list){
+  if(!document.getElementById('magnetBtn')){
+    var _tb=document.getElementById('themeBtn');
+    if(_tb && _tb.parentNode){
+      var _mb=document.createElement('button');
+      _mb.className='hdr-icon'; _mb.id='magnetBtn'; _mb.type='button';
+      _mb.title='Магнит к линиям (вкл/выкл)';
+      _mb.textContent='🧲';
+      _mb.style.opacity=(localStorage.getItem('rubix-snap-magnet')||'on')==='on'?'1':'0.35';
+      _mb.addEventListener('click',function(){
+        var cur=(localStorage.getItem('rubix-snap-magnet')||'on')==='on';
+        localStorage.setItem('rubix-snap-magnet', cur?'off':'on');
+        _mb.style.opacity=cur?'0.35':'1';
+      });
+      _tb.parentNode.insertBefore(_mb, _tb);
+    }
+  }
   var handle=el.querySelector('.list-hd');
   var dragging=false,sx=0,sy=0,sl=0,st=0;
   handle.addEventListener('pointerdown',function(e){
@@ -828,35 +844,57 @@ function makeDraggable(el,list){
   });
   handle.addEventListener('pointermove',function(e){
     if(!dragging) return;
-    var nx=Math.max(4,sl+(e.clientX-sx));
-    var ny=Math.max(4,st+(e.clientY-sy));
-    list.x=nx; list.y=ny;
-    el.style.left=list.x+'px'; el.style.top=list.y+'px';
+    var GAP=16, TH=4;
+    var magnet=(localStorage.getItem('rubix-snap-magnet')||'on')==='on';
     var _w=list.w||el.offsetWidth;
     var _h=list.h||el.offsetHeight;
-    var TH=6, vLine=null, hLine=null;
+    var rawX=Math.max(4,sl+(e.clientX-sx));
+    var rawY=Math.max(4,st+(e.clientY-sy));
+    var vT=[], hT=[];
     state.lists.forEach(function(o){
       if(o===list) return;
       var ow=o.w||310, oh=o.h||0;
-      if(Math.abs(nx-o.x)<TH) vLine=o.x;
-      if(Math.abs(nx-(o.x+ow))<TH) vLine=o.x+ow;
-      if(Math.abs(nx-(o.x+ow/2))<TH) vLine=o.x+ow/2;
-      if(Math.abs(nx+_w-o.x)<TH) vLine=o.x;
-      if(Math.abs(nx+_w-(o.x+ow))<TH) vLine=o.x+ow;
-      if(Math.abs(ny-o.y)<TH) hLine=o.y;
-      if(oh && Math.abs(ny-(o.y+oh))<TH) hLine=o.y+oh;
-      if(oh && Math.abs(ny-(o.y+oh/2))<TH) hLine=o.y+oh/2;
+      vT.push({at:o.x,off:0}); vT.push({at:o.x,off:_w}); vT.push({at:o.x,off:_w/2});
+      vT.push({at:o.x+ow,off:0}); vT.push({at:o.x+ow,off:_w}); vT.push({at:o.x+ow,off:_w/2});
+      vT.push({at:o.x+ow/2,off:0}); vT.push({at:o.x+ow/2,off:_w}); vT.push({at:o.x+ow/2,off:_w/2});
+      vT.push({at:o.x+ow+GAP,off:0});
+      vT.push({at:o.x-GAP,off:_w});
+      hT.push({at:o.y,off:0}); hT.push({at:o.y,off:_h}); hT.push({at:o.y,off:_h/2});
+      if(oh){
+        hT.push({at:o.y+oh,off:0}); hT.push({at:o.y+oh,off:_h}); hT.push({at:o.y+oh,off:_h/2});
+        hT.push({at:o.y+oh/2,off:0}); hT.push({at:o.y+oh/2,off:_h}); hT.push({at:o.y+oh/2,off:_h/2});
+        hT.push({at:o.y+oh+GAP,off:0});
+        hT.push({at:o.y-GAP,off:_h});
+      }
     });
     var cvW=canvas.clientWidth, cvH=canvas.clientHeight;
-    if(Math.abs(nx-8)<TH) vLine=8;
-    if(Math.abs(ny-8)<TH) hLine=8;
-    if(Math.abs(nx+_w-(cvW-8))<TH) vLine=cvW-8;
-    if(Math.abs(nx+_w/2-(cvW/2))<TH) vLine=cvW/2;
-    if(Math.abs(ny+_h/2-(cvH/2))<TH) hLine=cvH/2;
+    vT.push({at:8,off:0}); vT.push({at:cvW-8,off:_w}); vT.push({at:cvW/2,off:_w/2});
+    hT.push({at:8,off:0}); hT.push({at:cvH/2,off:_h/2});
+    var bV=null,bVD=TH+1;
+    vT.forEach(function(t){ var val=t.at-t.off, d=Math.abs(rawX-val); if(d<bVD){bVD=d;bV={pos:val,lineAt:t.at};} });
+    var bH=null,bHD=TH+1;
+    hT.forEach(function(t){ var val=t.at-t.off, d=Math.abs(rawY-val); if(d<bHD){bHD=d;bH={pos:val,lineAt:t.at};} });
+    var nx=rawX, ny=rawY;
+    if(bV && magnet) nx=bV.pos;
+    if(bH && magnet) ny=bH.pos;
+    list.x=Math.max(4,nx); list.y=Math.max(4,ny);
+    el.style.left=list.x+'px'; el.style.top=list.y+'px';
     var sv=document.getElementById('__sv'); if(!sv){sv=document.createElement('div');sv.id='__sv';sv.className='snap-line v';document.body.appendChild(sv);}
     var sh=document.getElementById('__sh'); if(!sh){sh=document.createElement('div');sh.id='__sh';sh.className='snap-line h';document.body.appendChild(sh);}
-    if(vLine!==null){sv.style.left=vLine+'px';sv.style.display='block';} else {sv.style.display='none';}
-    if(hLine!==null){sh.style.top=hLine+'px';sh.style.display='block';} else {sh.style.display='none';}
+    var cvR=canvas.getBoundingClientRect();
+    var r=el.getBoundingClientRect();
+    if(bV){
+      sv.style.left=(cvR.left+bV.lineAt)+'px';
+      sv.style.top=Math.max(0,r.top-30)+'px';
+      sv.style.height=(r.height+60)+'px';
+      sv.style.display='block';
+    } else { sv.style.display='none'; }
+    if(bH){
+      sh.style.top=(cvR.top+bH.lineAt)+'px';
+      sh.style.left=Math.max(0,r.left-30)+'px';
+      sh.style.width=(r.width+60)+'px';
+      sh.style.display='block';
+    } else { sh.style.display='none'; }
   });
   function end(){
     if(!dragging) return;
