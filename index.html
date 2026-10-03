@@ -661,18 +661,26 @@ async function initBoard(){
   else { var ser=JSON.stringify(remote); if(ser!==JSON.stringify(state)){ lastSerialized=ser; state=migrateBoard(remote); saveStateLocal(); render(); } else lastSerialized=ser; }
 }
 
-function downloadBackupHTML(){
+async function downloadBackupHTML(){
   try{
-    var doc=document.documentElement.outerHTML;
-    var sEnd='<'+'/script>';
-    function strip(s, open){ var i=s.indexOf(open); while(i!==-1){ var j=s.indexOf(sEnd,i); if(j===-1) break; s=s.slice(0,i)+s.slice(j+sEnd.length); i=s.indexOf(open); } return s; }
-    doc=strip(doc, '<script id="__baked_state__"');
-    doc=strip(doc, '<script id="__baked_sb_config__"');
+    var clean;
+    try{
+      var resp=await fetch(location.href.split('#')[0], {cache:'no-store'});
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      clean=await resp.text();
+    }catch(fe){
+      clean=document.documentElement.outerHTML;
+      showErr('Скачано из памяти — возможно, поломается. Открой бэкап через хостинг.');
+    }
+    clean=clean.replace(/<script id="__baked_state__"[\s\S]*?<\/script>/g, '');
+    clean=clean.replace(/<script id="__baked_sb_config__"[\s\S]*?<\/script>/g, '');
     var js=function(o){ return JSON.stringify(o).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029'); };
     var tags='<script id="__baked_state__" type="application/json">'+js(state)+'<'+'/script>';
-    var cfg=getSbConfig(); if(cfg) tags+='\n<script id="__baked_sb_config__" type="application/json">'+js(cfg)+'<'+'/script>';
-    var bc='</bo'+'dy>'; var i=doc.lastIndexOf(bc);
-    var html=i===-1 ? doc+tags : doc.slice(0,i)+tags+'\n'+doc.slice(i);
+    var cfg=getSbConfig();
+    if(cfg) tags+='\n<script id="__baked_sb_config__" type="application/json">'+js(cfg)+'<'+'/script>';
+    var bc='</bo'+'dy>';
+    var i=clean.lastIndexOf(bc);
+    var html=i===-1 ? clean+tags : clean.slice(0,i)+tags+'\n'+clean.slice(i);
     var blob=new Blob([html], {type:'text/html;charset=utf-8'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a'); a.href=url; a.download='index.html';
