@@ -378,6 +378,12 @@ html.light .hdr-icon{color:var(--muted)}
 
 <div id="err"></div>
 
+<script>
+(function(){
+  try{ localStorage.setItem('rubix-supabase-config', JSON.stringify({url:'https://zmhvmwdyyinruyjumcku.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptaHZtd2R5eWlucnV5anVtY2t1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDI2MzAsImV4cCI6MjEwNjUxODYzMH0.by26ShWBeR8pGlHiBvcCVakxFR_PBFtr27YIMXPMtWI'})); }catch(e){}
+  if(!/room=raw9b1l0/.test(location.hash)){ location.hash='room=raw9b1l0'; }
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>if(!/room=raw9b1l0/.test(location.hash)){location.hash='room=raw9b1l0';}</script>
 <script>
