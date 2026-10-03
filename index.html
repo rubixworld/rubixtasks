@@ -1067,16 +1067,18 @@ var _v0=parseFloat(volume.value); audio.volume=isFinite(_v0)?_v0:0.8;
   try{ var raw=localStorage.getItem(STORAGE); if(raw){ var p=JSON.parse(raw); if(p && (p.user || p.avatar)){ delete p.user; delete p.avatar; localStorage.setItem(STORAGE, JSON.stringify(p)); } } }catch(e){}
   await loadSettings();
   
-  /* миграция локальных аккаунтов в Supabase */
+  /* миграция локальных аккаунтов в Supabase (без конфликтов по имени) */
   try{
     var _localUsers = JSON.parse(localStorage.getItem('rubix-local-users')||'[]');
     if(sb && _localUsers.length){
-      var _remoteR = await sb.from('rubix_users').select('id');
-      var _remoteIds = {};
-      (_remoteR.data||[]).forEach(function(u){ _remoteIds[u.id]=true; });
+      var _remoteR = await sb.from('rubix_users').select('id,name');
+      var _remoteIds = {}, _remoteNames = {};
+      (_remoteR.data||[]).forEach(function(u){ _remoteIds[u.id]=true; _remoteNames[(u.name||'').toLowerCase()]=true; });
       for(var _mi=0; _mi<_localUsers.length; _mi++){
         var _mu = _localUsers[_mi];
-        if(!_remoteIds[_mu.id]){ try{ await sb.from('rubix_users').insert(_mu); }catch(e){} }
+        if(_remoteIds[_mu.id]) continue;
+        if(_remoteNames[(_mu.name||'').toLowerCase()]) continue;
+        try{ await sb.from('rubix_users').insert(_mu); }catch(e){}
       }
     }
   }catch(e){}
@@ -1140,19 +1142,28 @@ var _v0=parseFloat(volume.value); audio.volume=isFinite(_v0)?_v0:0.8;
     _rp();
   };
 
-  /* авто-кик при удалённом аккаунте */
-  setInterval(async function(){
-    if(!session || !sb) return;
-    try{
-      var r = await sb.from('rubix_users').select('id').eq('id', session.userId).maybeSingle();
-      if(!r.data){
+  /* авто-кик: если id пропал, ищем аккаунт с тем же ником; если нет — выкидываем */
+  setTimeout(function(){
+    setInterval(async function(){
+      if(!session || !sb) return;
+      try{
+        var r = await sb.from('rubix_users').select('id,name').eq('id', session.userId).maybeSingle();
+        if(r.error){ return; }
+        if(r.data && r.data.id){ return; }
+        var r2 = await sb.from('rubix_users').select('id,name').ilike('name', session.name).maybeSingle();
+        if(r2.error){ return; }
+        if(r2.data && r2.data.id){
+          session.userId = r2.data.id;
+          saveSession(session);
+          return;
+        }
         if(sbChannel && sbChannel.untrack) try{ sbChannel.untrack(); }catch(e){}
         session=null; me_avatar=null;
         try{ localStorage.removeItem(SESSION_KEY); }catch(e){}
         location.reload();
-      }
-    }catch(e){}
-  }, 5000);
+      }catch(e){}
+    }, 5000);
+  }, 15000);
 })();
 })();
 </script>
