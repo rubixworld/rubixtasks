@@ -1075,6 +1075,34 @@ var _v0=parseFloat(volume.value); audio.volume=isFinite(_v0)?_v0:0.8;
   try{ localStorage.setItem(BACKUP_KEY, JSON.stringify({ts:Date.now(), state:state})); }catch(e){}
   setInterval(function(){ try{ localStorage.setItem(BACKUP_KEY, JSON.stringify({ts:Date.now(), state:state})); }catch(e){} }, BACKUP_EVERY);
   loadTracks();
+
+  /* ===== FIX PRESENCE ===== */
+  setInterval(function(){
+    try{
+      if(!sbChannel || !session) return;
+      var pstate = (sbChannel.presenceState && sbChannel.presenceState()) || {};
+      var seen = {}, list = [];
+      Object.keys(pstate).forEach(function(k){
+        (pstate[k] || []).forEach(function(m){
+          if(!m || !m.name || !m.id) return;
+          if(m.id === session.userId) return;
+          if(seen[m.id]) return;
+          seen[m.id] = true;
+          list.push(m);
+        });
+      });
+      list.sort(function(a,b){ return a.name.localeCompare(b.name); });
+      presenceUsers = list;
+      renderPresence();
+    }catch(e){}
+  }, 2000);
+
+  /* отправить свой статус сразу и повторно каждые 15 сек */
+  setInterval(function(){
+    if(sbChannel && session){
+      sbChannel.track({ id: session.userId, name: session.name, avatar: me_avatar||null, ts: Date.now() }).catch(function(){});
+    }
+  }, 15000);
 })();
 })();
 </script>
