@@ -1142,28 +1142,19 @@ var _v0=parseFloat(volume.value); audio.volume=isFinite(_v0)?_v0:0.8;
     _rp();
   };
 
-  /* авто-кик: если id пропал, ищем аккаунт с тем же ником; если нет — выкидываем */
-  setTimeout(function(){
-    setInterval(async function(){
-      if(!session || !sb) return;
-      try{
-        var r = await sb.from('rubix_users').select('id,name').eq('id', session.userId).maybeSingle();
-        if(r.error){ return; }
-        if(r.data && r.data.id){ return; }
-        var r2 = await sb.from('rubix_users').select('id,name').ilike('name', session.name).maybeSingle();
-        if(r2.error){ return; }
-        if(r2.data && r2.data.id){
-          session.userId = r2.data.id;
-          saveSession(session);
-          return;
+  /* авто-кик: realtime-подписка на удаление аккаунта */
+  if(sb && session){
+    sb.channel('kick-'+session.userId)
+      .on('postgres_changes', {event:'DELETE', schema:'public', table:'rubix_users'}, function(p){
+        if(p.old && p.old.id === session.userId){
+          if(sbChannel && sbChannel.untrack) try{ sbChannel.untrack(); }catch(e){}
+          session=null; me_avatar=null;
+          try{ localStorage.removeItem(SESSION_KEY); }catch(e){}
+          location.reload();
         }
-        if(sbChannel && sbChannel.untrack) try{ sbChannel.untrack(); }catch(e){}
-        session=null; me_avatar=null;
-        try{ localStorage.removeItem(SESSION_KEY); }catch(e){}
-        location.reload();
-      }catch(e){}
-    }, 5000);
-  }, 15000);
+      })
+      .subscribe();
+  }
 })();
 })();
 </script>
