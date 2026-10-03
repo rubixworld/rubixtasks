@@ -1103,6 +1103,28 @@ var _v0=parseFloat(volume.value); audio.volume=isFinite(_v0)?_v0:0.8;
       sbChannel.track({ id: session.userId, name: session.name, avatar: me_avatar||null, ts: Date.now() }).catch(function(){});
     }
   }, 15000);
+
+  /* FIX v3: единый источник presence */
+  var _rp = renderPresence;
+  renderPresence = function(){
+    try{
+      if(sbChannel && session){
+        var ps = (sbChannel.presenceState && sbChannel.presenceState()) || {};
+        var seen = {}, list = [];
+        Object.keys(ps).forEach(function(k){
+          (ps[k]||[]).forEach(function(m){
+            if(!m||!m.name||!m.id) return;
+            if(m.id === session.userId) return;
+            if(seen[m.id]) return;
+            seen[m.id] = true; list.push(m);
+          });
+        });
+        list.sort(function(a,b){ return a.name.localeCompare(b.name); });
+        presenceUsers = list;
+      }
+    }catch(e){}
+    _rp();
+  };
 })();
 })();
 </script>
