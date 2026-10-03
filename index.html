@@ -699,6 +699,7 @@ var userNameBtn=document.getElementById('userNameBtn'), presenceBox=document.get
 var profileMenu=document.getElementById('profileMenu');
 
 function render(){
+  try{ console.log('RENDER cards=' + ((state && state.cards) ? state.cards.length : 'NULL') + ' | ' + (new Error()).stack.split('\n').slice(1,4).join(' ← ')); }catch(e){}
   boardName.value=state.boardName;
   userNameBtn.textContent=meName();
   if(me_avatar){ avatarImg.classList.add('with-img'); avatarImg.style.backgroundImage='url('+me_avatar+')'; avatarImg.textContent=''; }
