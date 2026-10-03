@@ -844,7 +844,7 @@ function makeDraggable(el,list){
   });
   handle.addEventListener('pointermove',function(e){
     if(!dragging) return;
-    var GAP=16, TH=4;
+    var GAP=16, TH=5;
     var magnet=(localStorage.getItem('rubix-snap-magnet')||'on')==='on';
     var _w=list.w||el.offsetWidth;
     var _h=list.h||el.offsetHeight;
@@ -854,22 +854,16 @@ function makeDraggable(el,list){
     state.lists.forEach(function(o){
       if(o===list) return;
       var ow=o.w||310, oh=o.h||0;
-      vT.push({at:o.x,off:0}); vT.push({at:o.x,off:_w}); vT.push({at:o.x,off:_w/2});
-      vT.push({at:o.x+ow,off:0}); vT.push({at:o.x+ow,off:_w}); vT.push({at:o.x+ow,off:_w/2});
-      vT.push({at:o.x+ow/2,off:0}); vT.push({at:o.x+ow/2,off:_w}); vT.push({at:o.x+ow/2,off:_w/2});
       vT.push({at:o.x+ow+GAP,off:0});
       vT.push({at:o.x-GAP,off:_w});
-      hT.push({at:o.y,off:0}); hT.push({at:o.y,off:_h}); hT.push({at:o.y,off:_h/2});
       if(oh){
-        hT.push({at:o.y+oh,off:0}); hT.push({at:o.y+oh,off:_h}); hT.push({at:o.y+oh,off:_h/2});
-        hT.push({at:o.y+oh/2,off:0}); hT.push({at:o.y+oh/2,off:_h}); hT.push({at:o.y+oh/2,off:_h/2});
         hT.push({at:o.y+oh+GAP,off:0});
         hT.push({at:o.y-GAP,off:_h});
       }
     });
     var cvW=canvas.clientWidth, cvH=canvas.clientHeight;
-    vT.push({at:8,off:0}); vT.push({at:cvW-8,off:_w}); vT.push({at:cvW/2,off:_w/2});
-    hT.push({at:8,off:0}); hT.push({at:cvH/2,off:_h/2});
+    vT.push({at:cvW/2,off:_w/2});
+    hT.push({at:cvH/2,off:_h/2});
     var bV=null,bVD=TH+1;
     vT.forEach(function(t){ var val=t.at-t.off, d=Math.abs(rawX-val); if(d<bVD){bVD=d;bV={pos:val,lineAt:t.at};} });
     var bH=null,bHD=TH+1;
