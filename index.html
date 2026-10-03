@@ -66,6 +66,9 @@ html.light .hdr-icon{color:var(--muted)}
 .list-cards{overflow-y:auto;flex:2 1 auto;min-height:40px;padding:4px 8px;display:flex;flex-direction:column;gap:8px}
 .list-resize{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;z-index:6;opacity:.3;background:linear-gradient(135deg,transparent 45%,var(--muted) 47%,var(--muted) 53%,transparent 55%);border-bottom-right-radius:var(--r-lg)}
 .list-resize:hover{opacity:.9}
+.snap-line{position:fixed;z-index:9999;pointer-events:none;background:#7c5cff;box-shadow:0 0 4px rgba(124,92,255,.8);display:none}
+.snap-line.v{width:1px;top:0;bottom:0}
+.snap-line.h{height:1px;left:0;right:0}
 .list.drag-over .list-cards{background:var(--accent-soft);border-radius:var(--r)}
 .list-empty{font-size:12px;color:var(--muted-2);text-align:center;padding:14px 8px;border:1.5px dashed var(--border);border-radius:var(--r)}
 .list-add{margin:2px 8px 10px;padding:8px;border-radius:var(--r);color:var(--muted);justify-content:center;font-size:13px;font-weight:600;border:1.5px dashed var(--border)}
@@ -827,19 +830,41 @@ function makeDraggable(el,list){
     if(!dragging) return;
     var nx=Math.max(4,sl+(e.clientX-sx));
     var ny=Math.max(4,st+(e.clientY-sy));
-    var SNAP=8;
-    state.lists.forEach(function(o){
-      if(o===list) return;
-      if(Math.abs(nx-o.x)<SNAP) nx=o.x;
-      if(Math.abs(ny-o.y)<SNAP) ny=o.y;
-      var ow=o.w||310;
-      if(Math.abs(nx-(o.x+ow))<SNAP) nx=o.x+ow;
-      if(Math.abs(nx-(o.x+ow+16))<SNAP) nx=o.x+ow+16;
-    });
     list.x=nx; list.y=ny;
     el.style.left=list.x+'px'; el.style.top=list.y+'px';
+    var _w=list.w||el.offsetWidth;
+    var _h=list.h||el.offsetHeight;
+    var TH=6, vLine=null, hLine=null;
+    state.lists.forEach(function(o){
+      if(o===list) return;
+      var ow=o.w||310, oh=o.h||0;
+      if(Math.abs(nx-o.x)<TH) vLine=o.x;
+      if(Math.abs(nx-(o.x+ow))<TH) vLine=o.x+ow;
+      if(Math.abs(nx-(o.x+ow/2))<TH) vLine=o.x+ow/2;
+      if(Math.abs(nx+_w-o.x)<TH) vLine=o.x;
+      if(Math.abs(nx+_w-(o.x+ow))<TH) vLine=o.x+ow;
+      if(Math.abs(ny-o.y)<TH) hLine=o.y;
+      if(oh && Math.abs(ny-(o.y+oh))<TH) hLine=o.y+oh;
+      if(oh && Math.abs(ny-(o.y+oh/2))<TH) hLine=o.y+oh/2;
+    });
+    var cvW=canvas.clientWidth, cvH=canvas.clientHeight;
+    if(Math.abs(nx-8)<TH) vLine=8;
+    if(Math.abs(ny-8)<TH) hLine=8;
+    if(Math.abs(nx+_w-(cvW-8))<TH) vLine=cvW-8;
+    if(Math.abs(nx+_w/2-(cvW/2))<TH) vLine=cvW/2;
+    if(Math.abs(ny+_h/2-(cvH/2))<TH) hLine=cvH/2;
+    var sv=document.getElementById('__sv'); if(!sv){sv=document.createElement('div');sv.id='__sv';sv.className='snap-line v';document.body.appendChild(sv);}
+    var sh=document.getElementById('__sh'); if(!sh){sh=document.createElement('div');sh.id='__sh';sh.className='snap-line h';document.body.appendChild(sh);}
+    if(vLine!==null){sv.style.left=vLine+'px';sv.style.display='block';} else {sv.style.display='none';}
+    if(hLine!==null){sh.style.top=hLine+'px';sh.style.display='block';} else {sh.style.display='none';}
   });
-  function end(){ if(!dragging) return; dragging=false; saveState(); }
+  function end(){
+    if(!dragging) return;
+    dragging=false;
+    var sv=document.getElementById('__sv'); if(sv) sv.style.display='none';
+    var sh=document.getElementById('__sh'); if(sh) sh.style.display='none';
+    saveState();
+  }
   handle.addEventListener('pointerup',end); handle.addEventListener('pointercancel',end);
 }
 
