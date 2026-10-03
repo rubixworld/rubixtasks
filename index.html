@@ -1066,6 +1066,20 @@ var _v0=parseFloat(volume.value); audio.volume=isFinite(_v0)?_v0:0.8;
 (async function init(){
   try{ var raw=localStorage.getItem(STORAGE); if(raw){ var p=JSON.parse(raw); if(p && (p.user || p.avatar)){ delete p.user; delete p.avatar; localStorage.setItem(STORAGE, JSON.stringify(p)); } } }catch(e){}
   await loadSettings();
+  
+  /* миграция локальных аккаунтов в Supabase */
+  try{
+    var _localUsers = JSON.parse(localStorage.getItem('rubix-local-users')||'[]');
+    if(sb && _localUsers.length){
+      var _remoteR = await sb.from('rubix_users').select('id');
+      var _remoteIds = {};
+      (_remoteR.data||[]).forEach(function(u){ _remoteIds[u.id]=true; });
+      for(var _mi=0; _mi<_localUsers.length; _mi++){
+        var _mu = _localUsers[_mi];
+        if(!_remoteIds[_mu.id]){ try{ await sb.from('rubix_users').insert(_mu); }catch(e){} }
+      }
+    }
+  }catch(e){}
   if(session) await refreshMeAvatar();
   render();
   await initBoard();
