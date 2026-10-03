@@ -211,7 +211,7 @@ html.light .hdr-icon{color:var(--muted)}
 <input class="hdr-title" id="boardName" value="Rubix TaskFlow">
 <div class="spacer"></div>
 <div class="presence" id="presence"></div>
-<input class="hdr-search" id="search" placeholder="Поиск…">
+<input class="hdr-search" id="search" placeholder="Поиск…" autocomplete="new-password" name="q-hdr-search-xyz" spellcheck="false" autocorrect="off" autocapitalize="off" readonly onfocus="this.removeAttribute('readonly')" onblur="this.setAttribute('readonly','')">
 <div class="dd" id="filterDd"></div>
 <button class="hdr-btn" id="addList">+ Категория</button>
 <button class="hdr-icon" id="backupBtn" title="Скачать бэкап">💾</button>
@@ -1083,6 +1083,16 @@ var _v0=parseFloat(volume.value); audio.volume=isFinite(_v0)?_v0:0.8;
       }
     }
   }catch(e){}
+  var _sh = document.getElementById('search');
+  if(_sh && _sh.value){ _sh.value=''; if(_sh.dispatchEvent) _sh.dispatchEvent(new Event('input')); }
+  setTimeout(function(){
+    var s=document.getElementById('search');
+    if(s && s.value){ s.value=''; if(s.dispatchEvent) s.dispatchEvent(new Event('input')); }
+  }, 400);
+  setTimeout(function(){
+    var s=document.getElementById('search');
+    if(s && s.value){ s.value=''; if(s.dispatchEvent) s.dispatchEvent(new Event('input')); }
+  }, 1500);
   if(session) await refreshMeAvatar();
   render();
   await initBoard();
