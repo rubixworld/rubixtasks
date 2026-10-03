@@ -52,7 +52,7 @@ html.light .hdr-icon{color:var(--muted)}
 .hdr .dd-btn{background:rgba(255,255,255,.14);border-color:transparent;color:#fff;min-width:120px}
 .board-scroll{flex:1;overflow:auto;position:relative}
 .canvas{position:relative;min-width:100%;min-height:100%;padding:8px}
-.list{position:absolute;width:310px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-md);display:flex;flex-direction:column;overflow:hidden}
+.list{position:absolute;width:310px;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-md);display:flex;flex-direction:column;overflow:hidden}
 .list-banner{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--surface-2);cursor:pointer}
 .list-hd{display:flex;align-items:center;gap:6px;padding:10px 8px 6px 10px;cursor:grab}
 .list-dot{width:9px;height:9px;border-radius:50%;flex:none}
@@ -60,10 +60,12 @@ html.light .hdr-icon{color:var(--muted)}
 .list-count{font-size:11.5px;font-weight:700;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:2px 8px}
 .list-tools{display:flex;gap:2px}
 .list-tool{width:24px;height:24px;justify-content:center;border-radius:6px;color:var(--muted-2);font-size:14px}
-.list-desc{font-size:12px;color:var(--muted);padding:0 14px 6px;white-space:pre-wrap;max-height:60px;overflow:hidden}
+.list-desc{font-size:12px;color:var(--muted);padding:0 14px 6px;white-space:pre-wrap;overflow:auto;flex:1 1 auto;min-height:16px}
 .list-prog{height:3px;margin:2px 10px 6px;background:var(--surface-2);border-radius:999px;overflow:hidden}
 .list-prog-fill{height:100%;background:var(--accent);border-radius:999px}
-.list-cards{overflow-y:auto;max-height:60vh;min-height:12px;padding:4px 8px;display:flex;flex-direction:column;gap:8px}
+.list-cards{overflow-y:auto;flex:2 1 auto;min-height:40px;padding:4px 8px;display:flex;flex-direction:column;gap:8px}
+.list-resize{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;z-index:6;opacity:.3;background:linear-gradient(135deg,transparent 45%,var(--muted) 47%,var(--muted) 53%,transparent 55%);border-bottom-right-radius:var(--r-lg)}
+.list-resize:hover{opacity:.9}
 .list.drag-over .list-cards{background:var(--accent-soft);border-radius:var(--r)}
 .list-empty{font-size:12px;color:var(--muted-2);text-align:center;padding:14px 8px;border:1.5px dashed var(--border);border-radius:var(--r)}
 .list-add{margin:2px 8px 10px;padding:8px;border-radius:var(--r);color:var(--muted);justify-content:center;font-size:13px;font-weight:600;border:1.5px dashed var(--border)}
@@ -724,12 +726,33 @@ function cardMatchesQuery(c,q){ if(!q)return true; if((c.title||'').toLowerCase(
 function renderList(list,q,fp){
   var el=document.createElement('div'); el.className='list';
   el.dataset.listId=list.id; el.style.left=list.x+'px'; el.style.top=list.y+'px'; el.style.zIndex=list.z||1;
+  if(list.w) el.style.width=list.w+'px';
+  if(list.h) el.style.height=list.h+'px';
   var allInList=state.cards.filter(function(c){return c.listId===list.id;});
   var shown=allInList.filter(function(c){return cardMatchesFilter(c,fp)&&cardMatchesQuery(c,q);});
   var avg=allInList.length?Math.round(allInList.reduce(function(s,c){return s+cardProgress(c);},0)/allInList.length):0;
   var bannerHtml=list.banner?'<img class="list-banner" src="'+list.banner+'" alt="">':'';
   var descHtml=list.description?'<div class="list-desc">'+esc(list.description)+'</div>':'';
   el.innerHTML=bannerHtml+'<div class="list-hd"><span class="list-dot" style="background:'+(list.color||'#7c5cff')+'"></span><input class="list-title" value="'+esc(list.title)+'"><span class="list-count">'+allInList.length+'</span><div class="list-tools"><button class="list-tool" data-act="editCat">⚙</button><button class="list-tool" data-act="add">+</button></div></div>'+descHtml+'<div class="list-prog"><div class="list-prog-fill" style="width:'+avg+'%"></div></div><div class="list-cards" data-list="'+list.id+'"></div><button class="list-add" data-act="add2">+ Добавить карточку</button>';
+  var rz=document.createElement('div'); rz.className='list-resize'; el.appendChild(rz);
+  (function(){
+    var drag=false,sx=0,sy=0,sw=0,sh=0;
+    rz.addEventListener('pointerdown',function(e){
+      e.stopPropagation(); e.preventDefault();
+      drag=true; sx=e.clientX; sy=e.clientY;
+      sw=list.w||el.offsetWidth; sh=list.h||el.offsetHeight;
+      if(rz.setPointerCapture) try{ rz.setPointerCapture(e.pointerId); }catch(_){}
+    });
+    rz.addEventListener('pointermove',function(e){
+      if(!drag) return;
+      var w=Math.max(220,Math.round((sw+(e.clientX-sx))/10)*10);
+      var hh=Math.max(160,Math.round((sh+(e.clientY-sy))/10)*10);
+      list.w=w; list.h=hh;
+      el.style.width=w+'px'; el.style.height=hh+'px';
+    });
+    function end(){ if(!drag) return; drag=false; saveState(); }
+    rz.addEventListener('pointerup',end); rz.addEventListener('pointercancel',end);
+  })();
   var cardsBox=el.querySelector('.list-cards');
   if(!shown.length) cardsBox.innerHTML='<div class="list-empty">Перетащи карточку сюда</div>';
   else shown.forEach(function(c){ cardsBox.appendChild(renderCard(c)); });
@@ -802,7 +825,18 @@ function makeDraggable(el,list){
   });
   handle.addEventListener('pointermove',function(e){
     if(!dragging) return;
-    list.x=Math.max(4,sl+(e.clientX-sx)); list.y=Math.max(4,st+(e.clientY-sy));
+    var nx=Math.max(4,sl+(e.clientX-sx));
+    var ny=Math.max(4,st+(e.clientY-sy));
+    var SNAP=8;
+    state.lists.forEach(function(o){
+      if(o===list) return;
+      if(Math.abs(nx-o.x)<SNAP) nx=o.x;
+      if(Math.abs(ny-o.y)<SNAP) ny=o.y;
+      var ow=o.w||310;
+      if(Math.abs(nx-(o.x+ow))<SNAP) nx=o.x+ow;
+      if(Math.abs(nx-(o.x+ow+16))<SNAP) nx=o.x+ow+16;
+    });
+    list.x=nx; list.y=ny;
     el.style.left=list.x+'px'; el.style.top=list.y+'px';
   });
   function end(){ if(!dragging) return; dragging=false; saveState(); }
