@@ -1139,6 +1139,20 @@ var _v0=parseFloat(volume.value); audio.volume=isFinite(_v0)?_v0:0.8;
     }catch(e){}
     _rp();
   };
+
+  /* авто-кик при удалённом аккаунте */
+  setInterval(async function(){
+    if(!session || !sb) return;
+    try{
+      var r = await sb.from('rubix_users').select('id').eq('id', session.userId).maybeSingle();
+      if(!r.data){
+        if(sbChannel && sbChannel.untrack) try{ sbChannel.untrack(); }catch(e){}
+        session=null; me_avatar=null;
+        try{ localStorage.removeItem(SESSION_KEY); }catch(e){}
+        location.reload();
+      }
+    }catch(e){}
+  }, 5000);
 })();
 })();
 </script>
